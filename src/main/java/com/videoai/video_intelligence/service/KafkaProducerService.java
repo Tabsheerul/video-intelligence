@@ -11,12 +11,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class KafkaProducerService {
 
-    @SuppressWarnings("rawtypes")
-    private final KafkaTemplate kafkaTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @SuppressWarnings("rawtypes")
-    public KafkaProducerService(KafkaTemplate kafkaTemplate) {
+    public KafkaProducerService(KafkaTemplate<String, String> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
