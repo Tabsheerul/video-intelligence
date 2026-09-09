@@ -1,7 +1,6 @@
 package com.videoai.video_intelligence.service;
 
 import com.google.cloud.speech.v1.*;
-import com.google.protobuf.ByteString;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

@@ -23,5 +23,5 @@ public interface VideoChunkRepository extends JpaRepository<VideoChunk, UUID> {
      * @return List of VideoChunks closest to the query
      */
     @Query(value = "SELECT * FROM video_chunks ORDER BY embedding <-> CAST(:embedding AS vector) LIMIT :limit", nativeQuery = true)
-    List<VideoChunk> findSimilarChunks(@Param("embedding") String embedding, @Param("limit") int limit);
+    List<VideoChunk> findSimilarChunks(@Param("embedding") float[] embedding, @Param("limit") int limit);
 }
