@@ -1,0 +1,8 @@
+target/
+.git/
+.gitignore
+.vscode/
+.env
+*.md
+uploads/
+extracted_genai/

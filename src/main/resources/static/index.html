@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Intelligence — Semantic Search</title>
+    <meta name="description" content="Search inside videos using AI-powered semantic search. Find the exact moment a topic is mentioned.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========== CSS RESET & VARIABLES ========== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.07);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(99, 102, 241, 0.4);
+            --text-primary: #e8e8ed;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --gradient-accent: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+            --gradient-bg: linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 100%);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.1);
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 400ms ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gradient-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ========== LAYOUT ========== */
+        .app-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--accent-glow);
+            border: 1px solid var(--border-accent);
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-primary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .header__badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        /* ========== SEARCH BAR ========== */
+        .search-section {
+            margin-bottom: 40px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-bar__input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-bar__icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-bar__input {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+        }
+
+        .search-bar__input::placeholder { color: var(--text-muted); }
+
+        .search-bar__input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .search-bar__btn {
+            padding: 14px 28px;
+            background: var(--gradient-accent);
+            border: none;
+            border-radius: var(--radius-md);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity var(--transition-fast), transform var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .search-bar__btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .search-bar__btn:active { transform: translateY(0); }
+        .search-bar__btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ========== STATUS BAR ========== */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+            min-height: 20px;
+        }
+
+        .status-bar--loading .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--border-subtle);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-bar--error { color: var(--error); }
+        .status-bar--success { color: var(--success); }
+
+        /* ========== RESULTS ========== */
+        .results-section { margin-top: 8px; }
+
+        .results-section__title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 16px;
+        }
+
+        .result-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: background var(--transition-normal), border-color var(--transition-normal),
+                        transform var(--transition-fast);
+        }
+
+        .result-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+        }
+
+        .result-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .result-card__video-id {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-primary);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .result-card__timestamp {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--accent-glow);
+            border: 1px solid var(--border-accent);
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-secondary);
+        }
+
+        .result-card__transcript {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .result-card__footer {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ========== VIDEO PLAYER MODAL ========== */
+        .player-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-overlay--active { display: flex; }
+
+        .player-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            width: 90%;
+            max-width: 720px;
+            animation: modal-in 0.3s ease;
+        }
+
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .player-modal__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .player-modal__title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .player-modal__close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--bg-card);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-fast);
+        }
+
+        .player-modal__close:hover { background: var(--bg-card-hover); }
+
+        .player-modal video {
+            width: 100%;
+            border-radius: var(--radius-md);
+            background: #000;
+        }
+
+        .player-modal__info {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ========== UPLOAD SECTION ========== */
+        .upload-section {
+            margin-top: 48px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .upload-section__title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 16px;
+        }
+
+        .upload-dropzone {
+            border: 2px dashed var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 40px 24px;
+            text-align: center;
+            transition: border-color var(--transition-normal), background var(--transition-normal);
+            cursor: pointer;
+        }
+
+        .upload-dropzone:hover, .upload-dropzone--dragover {
+            border-color: var(--accent-primary);
+            background: var(--accent-glow);
+        }
+
+        .upload-dropzone__icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .upload-dropzone__text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .upload-dropzone__hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .upload-form {
+            display: none;
+            margin-top: 16px;
+            padding: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+        }
+
+        .upload-form--active { display: block; }
+
+        .upload-form .form-group {
+            margin-bottom: 12px;
+        }
+
+        .upload-form label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .upload-form input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color var(--transition-normal);
+        }
+
+        .upload-form input[type="text"]:focus { border-color: var(--accent-primary); }
+
+        .upload-form__actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .upload-form__actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity var(--transition-fast);
+        }
+
+        .btn-upload {
+            background: var(--gradient-accent);
+            color: #fff;
+        }
+
+        .btn-cancel {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle) !important;
+        }
+
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state__icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state__title { font-size: 18px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+        .empty-state__desc { font-size: 14px; max-width: 380px; margin: 0 auto; }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .footer a:hover { text-decoration: underline; }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 600px) {
+            .app-container { padding: 24px 16px; }
+            .header h1 { font-size: 28px; }
+            .search-bar { flex-direction: column; }
+            .search-bar__btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header__badge">AI-Powered</div>
+            <h1>Video Intelligence</h1>
+            <p>Search inside your video library with natural language. Find the exact moment any topic is mentioned.</p>
+        </header>
+
+        <!-- SEARCH -->
+        <section class="search-section">
+            <div class="search-bar">
+                <div class="search-bar__input-wrapper">
+                    <svg class="search-bar__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input id="searchInput" class="search-bar__input" type="text"
+                           placeholder="Search videos… e.g. 'red shoes' or 'machine learning basics'"
+                           autocomplete="off">
+                </div>
+                <button id="searchBtn" class="search-bar__btn" onclick="performSearch()">Search</button>
+            </div>
+            <div id="statusBar" class="status-bar"></div>
+        </section>
+
+        <!-- RESULTS -->
+        <section id="resultsSection" class="results-section" style="display: none;">
+            <div class="results-section__title" id="resultsTitle">Results</div>
+            <div id="resultsList"></div>
+        </section>
+
+        <!-- EMPTY STATE -->
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state__icon">🎬</div>
+            <div class="empty-state__title">Ready to search</div>
+            <div class="empty-state__desc">Type a natural-language query above to find relevant video moments powered by semantic AI search.</div>
+        </div>
+
+        <!-- UPLOAD -->
+        <section class="upload-section">
+            <div class="upload-section__title">Upload a Video</div>
+            <div id="uploadDropzone" class="upload-dropzone" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-dropzone__icon">📤</div>
+                <div class="upload-dropzone__text">Click to select or drag & drop an MP4 file</div>
+                <div class="upload-dropzone__hint">Max file size: 100 MB</div>
+            </div>
+            <input type="file" id="fileInput" accept="video/mp4" style="display:none" onchange="onFileSelected(event)">
+            <div id="uploadForm" class="upload-form">
+                <div class="form-group">
+                    <label>Selected File</label>
+                    <input type="text" id="selectedFileName" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="uploadTitle">Title *</label>
+                    <input type="text" id="uploadTitle" placeholder="My Brand Video">
+                </div>
+                <div class="form-group">
+                    <label for="uploadDesc">Description</label>
+                    <input type="text" id="uploadDesc" placeholder="Optional description">
+                </div>
+                <div class="form-group">
+                    <label for="uploadTenant">Tenant ID *</label>
+                    <input type="text" id="uploadTenant" placeholder="tenant-001">
+                </div>
+                <div class="upload-form__actions">
+                    <button class="btn-upload" onclick="uploadVideo()">Upload & Process</button>
+                    <button class="btn-cancel" onclick="cancelUpload()">Cancel</button>
+                </div>
+                <div id="uploadStatus" class="status-bar" style="margin-top: 12px;"></div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            Video Intelligence API &middot; Powered by Spring Boot, pgvector & Google Vertex AI
+            &middot; <a href="/swagger-ui.html" target="_blank">API Docs (Swagger)</a>
+        </footer>
+    </div>
+
+    <!-- VIDEO PLAYER MODAL -->
+    <div id="playerOverlay" class="player-overlay" onclick="closePlayerOnOverlay(event)">
+        <div class="player-modal">
+            <div class="player-modal__header">
+                <span class="player-modal__title" id="playerTitle">Video Player</span>
+                <button class="player-modal__close" onclick="closePlayer()">&times;</button>
+            </div>
+            <video id="videoPlayer" controls></video>
+            <div class="player-modal__info" id="playerInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // ===== SEARCH =====
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
+
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            const statusBar = document.getElementById('statusBar');
+            const searchBtn = document.getElementById('searchBtn');
+            searchBtn.disabled = true;
+            statusBar.className = 'status-bar status-bar--loading';
+            statusBar.innerHTML = '<div class="spinner"></div> Searching…';
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+
+            const start = performance.now();
+
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/search?q=${encodeURIComponent(query)}&limit=10`);
+                const data = await res.json();
+                const elapsed = Math.round(performance.now() - start);
+
+                if (!res.ok) throw new Error(data.message || 'Search failed');
+
+                const results = data.results || [];
+                statusBar.className = 'status-bar status-bar--success';
+                statusBar.textContent = `Found ${results.length} result${results.length !== 1 ? 's' : ''} in ${elapsed}ms`;
+
+                renderResults(results, query);
+            } catch (err) {
+                statusBar.className = 'status-bar status-bar--error';
+                statusBar.textContent = `Error: ${err.message}`;
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        function renderResults(results, query) {
+            const section = document.getElementById('resultsSection');
+            const list = document.getElementById('resultsList');
+            const title = document.getElementById('resultsTitle');
+
+            if (results.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                document.querySelector('.empty-state__title').textContent = 'No results found';
+                document.querySelector('.empty-state__desc').textContent =
+                    `No video segments matched "${query}". Try a different search term or upload more videos.`;
+                section.style.display = 'none';
+                return;
+            }
+
+            title.textContent = `${results.length} Result${results.length !== 1 ? 's' : ''}`;
+            list.innerHTML = results.map((r, i) => `
+                <div class="result-card" onclick="playVideo('${r.videoUrl}', ${r.startTimestamp}, '${escapeHtml(r.transcript)}')">
+                    <div class="result-card__header">
+                        <span class="result-card__video-id">Video ${r.videoId ? r.videoId.substring(0, 8) + '…' : 'N/A'}</span>
+                        <span class="result-card__timestamp">▶ ${formatTimestamp(r.startTimestamp)} – ${formatTimestamp(r.endTimestamp)}</span>
+                    </div>
+                    <div class="result-card__transcript">${highlightQuery(r.transcript, query)}</div>
+                    <div class="result-card__footer">
+                        <span>Confidence: ${(r.confidenceScore * 100).toFixed(1)}%</span>
+                        <span>Duration: ${(r.endTimestamp - r.startTimestamp).toFixed(1)}s</span>
+                    </div>
+                </div>
+            `).join('');
+
+            section.style.display = 'block';
+        }
+
+        // ===== VIDEO PLAYER =====
+        function playVideo(videoUrl, startTime, transcript) {
+            const overlay = document.getElementById('playerOverlay');
+            const player = document.getElementById('videoPlayer');
+            const info = document.getElementById('playerInfo');
+
+            // Use the timestamp fragment to jump to the right moment
+            player.src = `${videoUrl}#t=${startTime}`;
+            info.textContent = transcript;
+            overlay.classList.add('player-overlay--active');
+            player.play().catch(() => {});
+        }
+
+        function closePlayer() {
+            const overlay = document.getElementById('playerOverlay');
+            const player = document.getElementById('videoPlayer');
+            player.pause();
+            player.src = '';
+            overlay.classList.remove('player-overlay--active');
+        }
+
+        function closePlayerOnOverlay(e) {
+            if (e.target === e.currentTarget) closePlayer();
+        }
+
+        // ===== UPLOAD =====
+        let selectedFile = null;
+
+        const dropzone = document.getElementById('uploadDropzone');
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('upload-dropzone--dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('upload-dropzone--dragover'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('upload-dropzone--dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'video/mp4') {
+                selectedFile = file;
+                showUploadForm(file);
+            }
+        });
+
+        function onFileSelected(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showUploadForm(file);
+            }
+        }
+
+        function showUploadForm(file) {
+            document.getElementById('selectedFileName').value = file.name;
+            document.getElementById('uploadForm').classList.add('upload-form--active');
+        }
+
+        function cancelUpload() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadForm').classList.remove('upload-form--active');
+            document.getElementById('uploadStatus').textContent = '';
+        }
+
+        async function uploadVideo() {
+            if (!selectedFile) return;
+
+            const title = document.getElementById('uploadTitle').value.trim();
+            const tenantId = document.getElementById('uploadTenant').value.trim();
+            if (!title || !tenantId) {
+                document.getElementById('uploadStatus').textContent = 'Title and Tenant ID are required.';
+                document.getElementById('uploadStatus').className = 'status-bar status-bar--error';
+                return;
+            }
+
+            const desc = document.getElementById('uploadDesc').value.trim();
+            const status = document.getElementById('uploadStatus');
+            status.className = 'status-bar status-bar--loading';
+            status.innerHTML = '<div class="spinner"></div> Uploading…';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('title', title);
+            formData.append('description', desc);
+            formData.append('tenantId', tenantId);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/videos/upload`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Upload failed');
+
+                status.className = 'status-bar status-bar--success';
+                status.textContent = `✓ ${data.message || 'Video uploaded successfully!'}`;
+                setTimeout(cancelUpload, 3000);
+            } catch (err) {
+                status.className = 'status-bar status-bar--error';
+                status.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        // ===== HELPERS =====
+        function formatTimestamp(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function highlightQuery(text, query) {
+            if (!query) return text;
+            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return text.replace(new RegExp(`(${escaped})`, 'gi'),
+                '<strong style="color:var(--accent-primary)">$1</strong>');
+        }
+    </script>
+</body>
+</html>

@@ -1,8 +1,33 @@
-version: '3'
+version: '3.8'
 
 services:
+  # ==========================================
+  # PostgreSQL + pgvector
+  # ==========================================
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: vi-postgres
+    environment:
+      POSTGRES_DB: video_search
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d video_search"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ==========================================
+  # Apache Kafka (via Zookeeper)
+  # ==========================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
+    container_name: vi-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -11,6 +36,7 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.3.0
+    container_name: vi-kafka
     depends_on:
       - zookeeper
     ports:
@@ -18,5 +44,44 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # ==========================================
+  # Video Intelligence Spring Boot Application
+  # ==========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vi-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      # Override datasource to point to the Docker network hostname
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/video_search
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      # Override Kafka bootstrap servers to Docker network hostname
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Google GenAI API Key — set this in your environment or .env file
+      GOOGLE_GENAI_API_KEY: ${GOOGLE_GENAI_API_KEY:-your-api-key-here}
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  pgdata:
+  uploads:
