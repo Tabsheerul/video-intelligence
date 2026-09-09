@@ -1,55 +1,118 @@
-# Video Intelligence Search API
+<div align="center">
+  <img src="https://img.icons8.com/color/96/000000/artificial-intelligence.png" alt="Video Intelligence Logo"/>
+  <h1>Video Intelligence API</h1>
+  <p><strong>Turn your video library into a fully searchable, semantically-aware knowledge base.</strong></p>
 
-An advanced B2B Video Intelligence platform that makes video libraries fully searchable and shoppable. 
+  <p>
+    <a href="#features">Features</a> • 
+    <a href="#architecture">Architecture</a> • 
+    <a href="#quick-start">Quick Start</a> • 
+    <a href="#api-documentation">API Docs</a>
+  </p>
 
-This robust Spring Boot application ingests videos, extracts audio using FFmpeg, converts it to text using the Google Cloud Speech-to-Text API, and generates 1536-dimensional vectors using Google Vertex AI. The vectors are stored in a PostgreSQL database with the `pgvector` extension, allowing users to perform low-latency semantic searches to find the exact timestamp a specific topic or product was mentioned in a video.
+  <p>
+    <img src="https://img.shields.io/badge/Spring%20Boot-3.4-6DB33F?style=flat-square&logo=spring&logoColor=white" alt="Spring Boot" />
+    <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+    <img src="https://img.shields.io/badge/pgvector-HNSW-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="pgvector" />
+    <img src="https://img.shields.io/badge/Kafka-Event%20Driven-231F20?style=flat-square&logo=apachekafka&logoColor=white" alt="Apache Kafka" />
+    <img src="https://img.shields.io/badge/Google%20Vertex%20AI-Embeddings-4285F4?style=flat-square&logo=googlecloud&logoColor=white" alt="Vertex AI" />
+  </p>
+</div>
 
-## Tech Stack
-- **Framework:** Spring Boot 3 + Java 21
-- **Database:** PostgreSQL with `pgvector` & Hibernate Vector integration
-- **Messaging:** Apache Kafka (Event-Driven AI processing)
-- **AI/ML:** Spring AI, Google Cloud Vertex AI (text-embedding-004), Google Cloud Speech-to-Text V1
-- **Media Processing:** FFmpeg (via jave2 wrapper)
+---
 
-## Features
-- **Asynchronous Processing:** Video uploads instantly return `202 ACCEPTED` and are placed in a Kafka queue.
-- **Resilient Pipelines:** Dead-Letter Queues (DLQ) configured for automatic failure handling.
-- **AI Embeddings:** Uses the latest `text-embedding-004` model to vectorize transcripts.
-- **Semantic Search:** Lightning-fast vector similarity search (`<->` operator) using HNSW indices in PostgreSQL.
+## 📖 Overview
 
-## Prerequisites
-- Docker & Docker Compose
-- Java 21 & Maven
-- Google Cloud Project with the `Cloud Speech-to-Text API` and `Vertex AI API` enabled.
-- A valid Google Cloud Service Account JSON Key set as `GOOGLE_APPLICATION_CREDENTIALS`.
+The **Video Intelligence API** is a cloud-native, B2B backend platform that ingests raw video files, extracts and transcribes their audio, and leverages Google Vertex AI to generate vector embeddings of the conversation. 
 
-## How to Run Locally
+Using **pgvector** in PostgreSQL, it allows users to perform lightning-fast semantic searches across thousands of videos to find the *exact second* a specific topic, product, or phrase was mentioned.
 
-### 1. Start Infrastructure (Kafka, Zookeeper, PostgreSQL)
-The project includes a `docker-compose.yml` to instantly spin up the required external infrastructure.
+## ✨ Features
+
+- **🚀 Event-Driven Architecture:** Video uploads instantly return `202 Accepted`. Heavy processing (audio extraction, transcription, embedding) is offloaded to Apache Kafka background workers.
+- **🧠 Semantic Search:** Uses Google Vertex AI (`text-embedding-004`) to understand the *meaning* of a search query, rather than just keyword matching.
+- **⚡ Sub-300ms Retrieval:** Uses Hierarchical Navigable Small World (HNSW) indexing via `pgvector` for instant nearest-neighbor similarity searches.
+- **UI Included:** Ships with a dark-themed Frontend Proof-of-Concept featuring a video player that jumps directly to the matching timestamp.
+- **Interactive API Docs:** Auto-generated Swagger/OpenAPI documentation.
+- **Fully Containerized:** Run the entire stack (App, Database, Message Broker) with a single Docker command.
+
+---
+
+## 🏗 Architecture
+
+1. **Upload:** User uploads an MP4 video via the REST API or UI.
+2. **Event Queued:** The API saves the file and publishes a `VideoIngestionEvent` to a Kafka topic.
+3. **Extraction:** A Kafka consumer picks up the event and uses FFmpeg (via JAVE2) to strip the audio from the video.
+4. **Transcription:** The audio is sent to the Google Cloud Speech-to-Text API, which returns text mapped to specific timestamps.
+5. **Vectorization:** The transcribed chunks are sent to Google Vertex AI to generate 768-dimensional embeddings.
+6. **Storage:** The chunks and their vector embeddings are stored in PostgreSQL (`video_chunks` table).
+7. **Search:** When a user searches, the query is vectorized and compared against the database using the pgvector cosine distance operator (`<->`).
+
+---
+
+## 🚀 Quick Start (Docker)
+
+The absolute fastest way to run this project is using Docker. You do not need Java or Maven installed on your machine.
+
+### Prerequisites
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed.
+* A [Google Gemini Developer API Key](https://aistudio.google.com/app/apikey).
+
+### 1. Clone the repository
 ```bash
-docker compose up -d
+git clone https://github.com/Tabsheerul/video-intelligence.git
+cd video-intelligence
 ```
 
 ### 2. Configure Environment Variables
-You must configure your Google Cloud credentials. You can set them in your environment variables or directly inside `src/main/resources/application.properties`.
-```properties
-# Example snippet
-spring.ai.vertex.ai.gemini.project-id=your-gcp-project-id
-spring.ai.vertex.ai.gemini.location=us-central1
+Create a `.env` file in the root directory and add your Google GenAI API Key:
+```env
+GOOGLE_GENAI_API_KEY=your_actual_api_key_here
 ```
 
-### 3. Run the Spring Boot App
+### 3. Spin up the stack
 ```bash
-./mvnw spring-boot:run
+docker-compose up --build -d
 ```
+*Note: The first run will take a few minutes as Docker pulls the Postgres and Kafka images and Maven compiles the Java application.*
 
-## API Usage Example
-Upload a video file for processing:
-```bash
-curl -X POST http://localhost:8081/api/v1/videos/upload \
-  -F "file=@demo.mp4;type=video/mp4" \
-  -F "title=Product Demo" \
-  -F "tenantId=user-123"
-```
-*Note: Ensure the file part explicitly includes `;type=video/mp4` when using curl.*
+### 4. Access the Application
+- **Frontend App:** [http://localhost:8081/](http://localhost:8081/)
+- **Swagger API Docs:** [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
+
+---
+
+## 💻 Local Development
+
+If you want to run the Spring Boot application natively in your IDE (IntelliJ, VS Code, Eclipse) while keeping the database and Kafka in Docker:
+
+1. **Start the Infrastructure:**
+   ```bash
+   # Starts only Postgres, Zookeeper, and Kafka
+   docker-compose up -d postgres zookeeper kafka
+   ```
+2. **Set your API Key:** 
+   Add the API key to your system environment variables or directly inside `src/main/resources/application.properties`.
+3. **Run the App:**
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+
+---
+
+## 📚 API Documentation
+
+Once the application is running, comprehensive API documentation is automatically generated by `springdoc-openapi`.
+
+Navigate to **`http://localhost:8081/swagger-ui.html`** to explore the endpoints, view request/response schemas, and interactively test the API.
+
+### Core Endpoints:
+* `POST /api/v1/videos/upload` - Upload an MP4 video (Multipart form data).
+* `GET /api/v1/search?q={query}&limit={limit}` - Perform a semantic search. Returns matching video snippets and timestamps.
+
+---
+
+## 🛡 Fault Tolerance & Reliability
+- **Dead Letter Queues (DLQ):** If a video fails to process (e.g., corrupt file or Google API timeout), the Kafka message is safely routed to a DLQ (`video-ingestion-dlq`) for manual inspection without halting the pipeline.
+- **HikariCP:** Enterprise-grade connection pooling ensures stable connections to PostgreSQL under high load.
+- **Schema Auto-Initialization:** The database schema and pgvector HNSW indices are automatically created on first boot via `schema.sql`.
